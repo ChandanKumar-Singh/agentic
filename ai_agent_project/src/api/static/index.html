@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AgentOS Pro</title>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-primary: #09090b;
+        --bg-secondary: #18181b;
+        --bg-tertiary: #27272a;
+        --border-color: #3f3f46;
+        --text-primary: #f4f4f5;
+        --text-secondary: #a1a1aa;
+        --accent: #3b82f6;
+        --accent-glow: rgba(59, 130, 246, 0.2);
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Inter", sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        height: 100vh;
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* Layout */
+      .app-container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Sidebar (History/Plan) */
+      .sidebar {
+        width: 320px;
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+      }
+      .sidebar-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.1rem;
+      }
+      .sidebar-header .dot {
+        width: 10px;
+        height: 10px;
+        background: var(--accent);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--accent);
+      }
+
+      .tab-nav {
+        display: flex;
+        padding: 10px;
+        gap: 5px;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 8px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: 6px;
+        font-size: 0.9em;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      .tab-btn.active {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+
+      .tab-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+
+      /* Run List */
+      .run-item {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .run-item:hover,
+      .run-item.active {
+        background: var(--bg-tertiary);
+        border-left: 3px solid var(--accent);
+      }
+      .run-meta {
+        font-size: 0.8em;
+        color: var(--text-secondary);
+        margin-top: 5px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      /* Plan List */
+      .plan-list {
+        padding: 15px;
+      }
+      .plan-step {
+        margin-bottom: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        opacity: 0.7;
+        transition: opacity 0.3s;
+      }
+      .plan-step.active {
+        opacity: 1;
+        border-color: var(--accent);
+        box-shadow: 0 0 15px var(--accent-glow);
+      }
+      .plan-step.completed {
+        border-color: var(--success);
+        opacity: 0.8;
+      }
+      .step-id {
+        font-size: 0.75em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      /* Main Chat Area */
+      .main-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      .top-bar {
+        padding: 15px 30px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(9, 9, 11, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 5;
+        position: absolute;
+        width: 100%;
+        top: 0;
+      }
+      .active-goal {
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 600px;
+      }
+      .status-badge {
+        padding: 5px 12px;
+        border-radius: 100px;
+        font-size: 0.8em;
+        font-weight: 600;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+      }
+
+      /* Stream Feed */
+      .feed-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 80px 20% 120px 20%;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        scroll-behavior: smooth;
+      }
+
+      .msg-block {
+        animation: fadeIn 0.4s ease;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      /* Message Types */
+      .thought-bubble {
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        font-style: italic;
+        font-size: 0.95em;
+        line-height: 1.6;
+        border-left: 2px solid var(--border-color);
+        padding-left: 15px;
+      }
+
+      .action-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 10px 0;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.9em;
+      }
+      .action-header {
+        padding: 8px 15px;
+        background: var(--bg-tertiary);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .action-body {
+        padding: 15px;
+        color: var(--text-secondary);
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+
+      .obs-card {
+        background: rgba(16, 185, 129, 0.05);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 8px;
+        padding: 15px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.9em;
+        color: #a7f3d0;
+        margin-top: -5px;
+      }
+      .obs-error {
+        background: rgba(239, 68, 68, 0.05);
+        border-color: rgba(239, 68, 68, 0.2);
+        color: #fecaca;
+      }
+
+      .final-result {
+        background: linear-gradient(
+          145deg,
+          var(--bg-secondary),
+          var(--bg-tertiary)
+        );
+        border: 1px solid var(--accent);
+        padding: 25px;
+        border-radius: 12px;
+        margin-top: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+      .final-result h3 {
+        margin-top: 0;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Input Area */
+      .input-area {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        padding: 30px 20%;
+        background: linear-gradient(to top, var(--bg-primary) 80%, transparent);
+        display: flex;
+        justify-content: center;
+      }
+      .input-box {
+        width: 100%;
+        max-width: 800px;
+        position: relative;
+      }
+      input {
+        width: 100%;
+        padding: 16px 20px;
+        padding-right: 120px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        color: white;
+        font-size: 1rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: border 0.3s;
+        font-family: "Inter", sans-serif;
+      }
+      input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .send-btn {
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        padding: 8px 16px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .send-btn:hover {
+        opacity: 0.9;
+      }
+      .send-btn:disabled {
+        background: var(--border-color);
+        cursor: not-allowed;
+      }
+
+      /* Loader */
+      .typing-indicator {
+        display: inline-flex;
+        gap: 4px;
+        padding: 10px;
+        opacity: 0.6;
+      }
+      .typing-indicator span {
+        width: 6px;
+        height: 6px;
+        background: var(--text-secondary);
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out;
+      }
+      .typing-indicator span:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      .typing-indicator span:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+
+      @keyframes bounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+        }
+        40% {
+          transform: scale(1);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Markdown Overrides */
+      .markdown-body {
+        line-height: 1.7;
+      }
+      .markdown-body pre {
+        background: #000;
+        padding: 15px;
+        border-radius: 6px;
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+      }
+      .markdown-body code {
+        font-family: "JetBrains Mono", monospace;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 5px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="dot"></div>
+          AgentOS Pro
+        </div>
+
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="switchTab('history')">
+            History
+          </button>
+          <button class="tab-btn" onclick="switchTab('plan')">Live Plan</button>
+        </div>
+
+        <div id="historyTab" class="tab-content active run-list">
+          <!-- Run History -->
+        </div>
+
+        <div id="planTab" class="tab-content plan-list">
+          <div
+            style="
+              padding: 20px;
+              text-align: center;
+              color: var(--text-secondary);
+              font-size: 0.9em;
+            "
+          >
+            No active plan. Start a run to see subtasks here.
+          </div>
+        </div>
+      </div>
+
+      <!-- Main -->
+      <div class="main-col">
+        <div class="top-bar">
+          <div class="active-goal" id="headerGoal">Agent Ready</div>
+          <div class="status-badge" id="headerStatus">Idle</div>
+        </div>
+
+        <div class="feed-container" id="feed">
+          <div
+            style="
+              text-align: center;
+              margin-top: 100px;
+              color: var(--text-secondary);
+            "
+          >
+            <h2>How can I help you today?</h2>
+            <p>Ask me to research topics, write code, or analyze data.</p>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <div class="input-box">
+            <input
+              type="text"
+              id="goalInput"
+              placeholder="Describe your task..."
+              autocomplete="off"
+              onkeydown="handleEnter(event)"
+            />
+            <button class="send-btn" id="sendBtn" onclick="startRun()">
+              Run
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let activeRunId = null;
+      let eventSource = null;
+
+      // --- Tab Switching ---
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((c) => c.classList.remove("active"));
+
+        if (tab === "history") {
+          document
+            .querySelector("button[onclick=\"switchTab('history')\"]")
+            .classList.add("active");
+          document.getElementById("historyTab").classList.add("active");
+        } else {
+          document
+            .querySelector("button[onclick=\"switchTab('plan')\"]")
+            .classList.add("active");
+          document.getElementById("planTab").classList.add("active");
+        }
+      }
+
+      // --- API Calls ---
+      async function startRun() {
+        const input = document.getElementById("goalInput");
+        const btn = document.getElementById("sendBtn");
+        const goal = input.value.trim();
+
+        if (!goal) return;
+
+        // UI Reset
+        input.value = "";
+        input.disabled = true;
+        btn.disabled = true;
+        document.getElementById("feed").innerHTML = ""; // Clear feed
+        document.getElementById("headerGoal").innerText = goal;
+        document.getElementById("headerStatus").innerText = "Starting...";
+
+        // Add User Message
+        addMessage("user", goal);
+
+        try {
+          const res = await fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ goal }),
+          });
+          const data = await res.json();
+          activeRunId = data.run_id;
+
+          // Start Streaming
+          connectStream(activeRunId);
+          refreshRunList();
+        } catch (e) {
+          alert("Error: " + e);
+          resetInput();
+        }
+      }
+
+      function connectStream(runId) {
+        if (eventSource) eventSource.close();
+
+        console.log("Connecting to stream:", `/api/run/${runId}/stream`);
+        eventSource = new EventSource(`/api/run/${runId}/stream`);
+
+        const feed = document.getElementById("feed");
+
+        // Add typing indicator
+        const typingId = "typing-" + Date.now();
+        feed.innerHTML += `
+            <div id="${typingId}" class="msg-block typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+        `;
+
+        eventSource.onmessage = (e) => {
+          const payload = JSON.parse(e.data); // Outer wrapper
+          // Note: The serve sends data: json_string. payload.data is the inner JSON string
+
+          // Check for DONE
+          if (payload.event === "DONE") {
+            eventSource.close();
+            removeTyping(typingId);
+            resetInput();
+            document.getElementById("headerStatus").innerText = "Completed";
+            return;
+          }
+
+          // Parse inner data
+          let innerData = {};
+          try {
+            innerData = JSON.parse(payload.data);
+          } catch {
+            innerData = payload.data;
+          }
+
+          processEvent(payload.event, innerData, typingId);
+        };
+
+        eventSource.onerror = (e) => {
+          console.error("Stream error", e);
+          eventSource.close();
+          resetInput();
+          document.getElementById("headerStatus").innerText = "Disconnected";
+        };
+      }
+
+      function processEvent(type, data, typingId) {
+        const feed = document.getElementById("feed");
+        const typingEl = document.getElementById(typingId);
+
+        // Scroll to bottom
+        window.scrollTo(0, document.body.scrollHeight);
+
+        if (type === "thought") {
+          // Render thought bubble
+          const html = marked.parse(data.thought);
+          const div = document.createElement("div");
+          div.className = "msg-block thought-bubble markdown-body";
+          div.innerHTML = html;
+          feed.insertBefore(div, typingEl);
+        } else if (type === "action") {
+          const div = document.createElement("div");
+          div.className = "msg-block action-card";
+          div.innerHTML = `
+                <div class="action-header">⚡ ${data.tool}</div>
+                <div class="action-body">${JSON.stringify(data.args, null, 2)}</div>
+            `;
+          feed.insertBefore(div, typingEl);
+        } else if (type === "observation") {
+          const div = document.createElement("div");
+          div.className = `msg-block obs-card ${data.success ? "" : "obs-error"}`;
+          div.innerHTML = data.success ? data.result : `Error: ${data.error}`;
+          feed.insertBefore(div, typingEl);
+        } else if (type === "result") {
+          const div = document.createElement("div");
+          div.className = "msg-block final-result markdown-body";
+          if (data.answer) {
+            div.innerHTML = `<h3>🏁 Final Result</h3>${marked.parse(data.answer)}`;
+          } else {
+            div.innerHTML = `<h3>❌ Error</h3>${data.error}`;
+          }
+          feed.insertBefore(div, typingEl);
+        } else if (type === "step") {
+          // Update plan tab if needed, logic omitted for brevity but supports expanding step info
+          // Could highlight current subtask
+          updatePlanHighlight(data.subtask_id);
+        }
+
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      function addMessage(role, text) {
+        const feed = document.getElementById("feed");
+        const div = document.createElement("div");
+        div.className = "msg-block";
+        div.style.textAlign = "right";
+        div.innerHTML = `<div style="background:var(--bg-tertiary); display:inline-block; padding:10px 15px; border-radius:12px; margin-bottom:20px;">${text}</div>`;
+        feed.appendChild(div);
+      }
+
+      function updatePlanHighlight(subtaskId) {
+        // Logic to fetch plan and highlight active step
+        // For now just logging
+        console.log("Active Subtask:", subtaskId);
+      }
+
+      function removeTyping(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+      }
+
+      function resetInput() {
+        document.getElementById("goalInput").disabled = false;
+        document.getElementById("sendBtn").disabled = false;
+        document.getElementById("goalInput").focus();
+      }
+
+      function handleEnter(e) {
+        if (e.key === "Enter") startRun();
+      }
+
+      async function refreshRunList() {
+        try {
+          const res = await fetch("/api/runs");
+          const runs = await res.json();
+          runs.sort((a, b) => b.timestamp - a.timestamp);
+          document.getElementById("historyTab").innerHTML = runs
+            .map(
+              (r) => `
+                <div class="run-item" onclick="loadRun('${r.run_id}')">
+                    <div style="font-weight:600">${r.goal.substring(0, 25)}...</div>
+                    <div class="run-meta">
+                        <span>${r.status}</span>
+                        <span>${new Date(r.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                </div>
+            `,
+            )
+            .join("");
+        } catch (e) {}
+      }
+
+      async function loadRun(runId) {
+        // For replaying old runs, we'd need a separate logic to fetch steps and render them
+        // similar to processEvent. For now, we assume this is for live runs.
+        alert("Replay feature coming next!");
+      }
+
+      // Init
+      refreshRunList();
+    </script>
+  </body>
+</html>
