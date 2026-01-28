@@ -24,7 +24,7 @@ class CalculatorTool(Tool):
         else:
             raise TypeError(f"Unsupported type {node}")
 
-    def execute(self, expression: str) -> str:
+    async def execute(self, expression: str) -> str:
         try:
             # Parse only (no eval)
             # Limit characters for extra safety

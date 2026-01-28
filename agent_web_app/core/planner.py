@@ -21,8 +21,8 @@ class Planner:
         Each step should ideally correspond to one tool call.
         Do NOT include manual steps like 'Open browser', 'Click link', 'Type in search bar'.
         
-        Return ONLY a JSON list of strings.
-        Example: ["Search Wikipedia for Taj Mahal", "Search images for Taj Mahal"]
+        Return ONLY a JSON list of objects.
+        Example: [{{"tool_name": "wikipedia", "input_value": "Taj Mahal"}}, {{"tool_name": "image_search", "input_value": "Taj Mahal"}}]
         """
         
         response = self.llm.generate(prompt, model="phi3:latest")

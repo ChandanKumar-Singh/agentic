@@ -5,7 +5,13 @@ class ImageSearchTool(Tool):
     name = "image_search"
     description = "Search for images. Input: query string. Returns: markdown image links."
 
-    def execute(self, query: str, max_results: int = 3) -> str:
+    async def execute(self, query: str, max_results: int = 3) -> str:
+        import asyncio
+        from functools import partial
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, partial(self._sync_execute, query, max_results))
+
+    def _sync_execute(self, query: str, max_results: int = 3) -> str:
         print(f"[Tool:ImageSearch] Searching images for: {query}")
         images = []
         try:

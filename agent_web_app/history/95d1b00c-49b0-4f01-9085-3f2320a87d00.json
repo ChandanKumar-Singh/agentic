@@ -56,6 +56,18 @@
     {
       "role": "system",
       "content": "Steps: [\"Action: image_search(PM Narendra Modi)\\nResult: ![Prime Minister Narendra Modi turns 72; leaders extend wishes - The Hindu](https://th-i.thgim.com/public/incoming/s4li5m/article65901826.ece/alternates/FREE_1200/PTI09_10_2022_000168A.jpg)\\n![Narendra Modi | World Bank Live](https://s7d1.scene7.com/is/image/wbcollab/India_PM_Narendra_Modi-2?qlt=90&fmt=webp&resMode=sharp2)\\n![Prime Minister Narendra Modi - JohnannBreagha](https://www.opindia.com/wp-content/uploads/2022/10/PM-Modi-Image-007-13102022.jpg)\", \"Action: image_search(PM Narendra Modi)\\nResult: ![Prime Minister Narendra Modi turns 72; leaders extend wishes - The Hindu](https://th-i.thgim.com/public/incoming/s4li5m/article65901826.ece/alternates/FREE_1200/PTI09_10_2022_000168A.jpg)\\n![Narendra Modi | World Bank Live](https://s7d1.scene7.com/is/image/wbcollab/India_PM_Narendra_Modi-2?qlt=90&fmt=webp&resMode=sharp2)\\n![Prime Minister Narendra Modi - JohnannBreagha](https://www.opindia.com/wp-content/uploads/2022/10/PM-Modi-Image-007-13102022.jpg)\"]"
+    },
+    {
+      "role": "user",
+      "content": "show me Rahul gandhi  image"
+    },
+    {
+      "role": "ai",
+      "content": "Here are three images of Rahul Gandhi:\n\n1. ![Rahul Gandhi Wallpapers - Top Free Rahul Gandhi Backgrounds ...](https://wallpaperaccess.com/full/4373736.jpg)\n2. ![Indian opposition leader Rahul Gandhi calls on US audience to stand up ...](https://i0.wp.com/thehill.com/wp-content/uploads/sites/2/2023/06/647d3f7619b497.36366843.jpeg?w=2000&ssl=1)\n3. ![Process to Elect New Congress President Underway, Rahul Gandhi the ...](https://cdn.thewire.in/wp-content/uploads/2020/11/17134913/Rahul.jpg)\n\nPlease note that these images are from reputable sources and are of high quality."
+    },
+    {
+      "role": "system",
+      "content": "Steps: [\"Action: web_search(Rahul Gandhi images)\\nResult: Search failed: Unsupported protocol version 0x304\", \"Action: image_search(Rahul Gandhi image)\\nResult: ![Rahul Gandhi Wallpapers - Top Free Rahul Gandhi Backgrounds ...](https://wallpaperaccess.com/full/4373736.jpg)\\n![Indian opposition leader Rahul Gandhi calls on US audience to stand up ...](https://i0.wp.com/thehill.com/wp-content/uploads/sites/2/2023/06/647d3f7619b497.36366843.jpeg?w=2000&ssl=1)\\n![Process to Elect New Congress President Underway, Rahul Gandhi the ...](https://cdn.thewire.in/wp-content/uploads/2020/11/17134913/Rahul.jpg)\"]"
     }
   ]
 }

@@ -7,7 +7,7 @@ class Tool(ABC):
     description: str
 
     @abstractmethod
-    def execute(self, **kwargs) -> str:
+    async def execute(self, **kwargs) -> str:
         pass
 
 class ToolRegistry:

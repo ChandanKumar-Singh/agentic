@@ -1,0 +1,25 @@
+{
+  "name": "Perf Test",
+  "messages": [
+    {
+      "role": "user",
+      "content": "6+6"
+    },
+    {
+      "role": "ai",
+      "content": "The sum of 6 and 6 is 12. Therefore, the answer to 6+6 is 1 end with two zeros because it's divisible by both 5 and 2 (since any number that ends in zero must be a multiple of 10)."
+    },
+    {
+      "role": "user",
+      "content": "Who is the current CEO of Microsoft?"
+    },
+    {
+      "role": "ai",
+      "content": "Unfortunately, I couldn't find any information about the current CEO of Microsoft in the provided search results. The sources mention Eudora email issues, AT&T TV channel problems, and rollover data policies, but none of them contain relevant information about Microsoft's leadership.\n\nTo provide a high-quality answer, I would recommend searching for more up-to-date and relevant sources. As of my knowledge cutoff, Satya Nadella has been the CEO of Microsoft since 2014, but it's possible that there have been updates or changes to this information since then.\n\nIf you'd like, I can try to find more recent information on the current CEO of Microsoft for you!"
+    },
+    {
+      "role": "system",
+      "content": "Steps: [\"Action: web_search(current CEO of Microsoft)\\nResult: Source: Anyone have recent problem with Eudora receving email?\\nSnippet: Mar 9, 2015 \\u00b7 Eudora would not let me add the certificate for outgoing mail; it would tell me I had not sent anything with SSL for the current session. If I went over to the inbound tab, it indicated a problem, but \\u2026\\n\\nSource: POOR/Scam -NOT SOLVED!!!! ****UPDATED ... - AT&T Community \\u2026\\nSnippet: As of 7/19/19, my TV channels only available as Basic, only local channels, BUT, my current monthly statements show as U300 - multiple channels HBO, etc.!!!! No doubt it is a scam!\\n\\nSource: Roll over??? | Page 2 | AT&T Community Forums\\nSnippet: May 30, 2016 \\u00b7 As was said before, the current version of rollover data is the first incarnation. It was something totally new to AT&T and they needed to make sure that it worked properly.\\n\\n\"]"
+    }
+  ]
+}

@@ -9,8 +9,9 @@ class WebSearchTool(Tool):
     name = "web_search"
     description = "Search the web for real-time information. Returns a summary."
     
-    def __init__(self, llm_provider):
-        self.llm = llm_provider
+    def __init__(self, llm_provider=None):
+        # llm_provider is kept for signature compatibility but not used
+        pass
 
     def _fetch_page_content(self, url: str, timeout: int = 10):
         try:
@@ -26,45 +27,43 @@ class WebSearchTool(Tool):
         except:
             return None
 
-    def execute(self, query: str, max_results: int = 3) -> str:
-        print(f"[Tool:WebSearch] Searching for: {query}")
-        results = []
-        try:
-            with DDGS() as ddgs:
-                for r in ddgs.text(query, max_results=max_results):
-                    results.append(r)
-        except Exception as e:
-            return f"Search failed: {e}"
+    async def execute(self, query: str, max_results: int = 3) -> str:
+        import asyncio
+        from functools import partial
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, partial(cached_search, query, max_results))
 
-        if not results:
-            return "No results found."
+from functools import lru_cache
 
-        # Fetch content
-        content_context = ""
-        fetched = 0
-        for res in results:
-            if fetched >= 2: break
-            text = self._fetch_page_content(res['href'])
-            if text:
-                content_context += f"Source: {res['title']}\nURL: {res['href']}\nContent: {text}\n\n"
-                fetched += 1
-        
-        # Fallback to snippets
-        if not content_context:
-             for res in results:
-                 content_context += f"Source: {res['title']}\nSnippet: {res['body']}\n\n"
+@lru_cache(maxsize=100)
+def cached_search(query: str, max_results: int = 3) -> str:
+    print(f"[Tool:WebSearch] Searching for: {query} (Cache Miss)")
+    results = []
+    try:
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, max_results=max_results):
+                results.append(r)
+    except Exception as e:
+        return f"Search failed: {e}"
 
-        # Summarize using Mistral
-        prompt = f"""
-        User Query: {query}
-        
-        Search Results:
-        {content_context}
-        
-        Summarize the above findings to answer the user's query directly and concisely.
-        """
-        
-        print("[Tool:WebSearch] Summarizing with mistral:latest...")
-        summary = self.llm.generate(prompt, model="mistral:latest")
-        return summary
+    if not results:
+        return "No results found."
+
+    # Fetch content
+    content_context = ""
+    fetched = 0
+    # Note: _fetch_page_content assumes self. Refactor to standalone or keep simple snippets.
+    # For speed (Phase 2), snippets are often enough and much faster than fetching full pages.
+    # Let's rely on snippets first as per Plan "Return raw snippets".
+    
+    for res in results:
+        # content_context += f"Source: {res['title']}\nURL: {res['href']}\nContent: ...\n\n"
+        # Using body snippet provided by DDGS to avoid network fetches per page
+        content_context += f"Source: {res['title']}\nSnippet: {res['body']}\n\n"
+    
+    print("[Tool:WebSearch] Returning raw results.")
+    return content_context
+
+    # def _sync_execute(self, query: str, max_results: int = 3) -> str:
+    #    ... deleted ...
 

@@ -76,7 +76,7 @@ async def chat_endpoint(request: ChatRequest):
         agent = Agent(llm)
         
         # 2. Run Agent Loop
-        raw_result = agent.run(query)
+        raw_result = await agent.run(query)
         
         # 3. Refine with Llama3.1 (Synthesis Step)
         print("[Server] Refining answer with llama3.1:8b...")
@@ -88,14 +88,14 @@ async def chat_endpoint(request: ChatRequest):
         
         Please provide a high-quality, professional final answer based on these findings.
         """
-        final_answer = llm.generate(refine_prompt, model="llama3.1:8b")
+        final_answer = await llm.generate_async(refine_prompt, model="llama3.1:8b")
         
         final_response_text = final_answer
         steps = agent.history
         
     else:
         print("[Server] Normal Chat Mode. Using phi3:latest...")
-        response = llm.generate(query, model="phi3:latest")
+        response = await llm.generate_async(query, model="phi3:latest")
         final_response_text = response
         steps = []
 

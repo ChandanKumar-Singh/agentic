@@ -36,6 +36,18 @@
     {
       "role": "user",
       "content": "give me rahul gandhi all hirarchy of generation"
+    },
+    {
+      "role": "user",
+      "content": "give me rahul gandhi all hirarchy of generation"
+    },
+    {
+      "role": "ai",
+      "content": "Unfortunately, I was unable to find any information on Rahul Gandhi's family hierarchy or generations. The search results provided appear to be unrelated to the topic.\n\nHowever, I can suggest some alternative sources where you may be able to find the information you're looking for:\n\n1. Wikipedia: Although the page \"Rahul Gandhi\" does not exist, it's possible that a page on his family or the Nehru-Gandhi family exists.\n2. Official websites: You can try searching for official websites of the Indian National Congress party or Rahul Gandhi's personal website to see if they have any information on his family hierarchy.\n3. Biographies and news articles: You can also try searching for biographies or news articles about Rahul Gandhi that may provide information on his family history.\n\nIf you could provide more context or clarify what specific information you're looking for, I'd be happy to try and assist you further."
+    },
+    {
+      "role": "system",
+      "content": "Steps: [\"Action: wikipedia(Rahul Gandhi'in political hierarchy of generations.)\\nResult: Page not found.\", \"Action: web_search(Generation timeline for Rahul Gandhi)\\nResult: Source: An exciting opportunity for the right Private Credit strategy\\nSnippet: From an allocation perspective, inflation is pushing most investors\\u2019 focus towards opportunistic distress and value-add strategies. For firms like ours, the dislocation has allowed us to raise more capital and \\u2026\\n\\nSource: Arrow Global Group Results for the period ended 30 September \\u2026\\nSnippet: Group highlights Continued investment and build of capabilities, both in terms of people and infrastructure, with fundraising progressing across real estate and lending to complement our ACO \\u2026\\n\\nSource: Full Year Results - Arrow Global\\nSnippet: 23 March 2021 Arrow Global Group plc Preliminary results for the twelve months ended 31 December 2020 Robust cashflow generation and strong return to profitability in H2; new five-year targets reflect \\u2026\\n\\n\"]"
     }
   ]
 }

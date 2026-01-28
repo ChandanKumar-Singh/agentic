@@ -29,7 +29,10 @@ class LLMProvider:
             ],
             "stream": False,
             "options": {
-                "temperature": 0.0 
+                "temperature": 0.2,
+                "num_ctx": 2048,
+                "num_predict": 300,
+                "top_p": 0.9
             }
         }
         
@@ -41,3 +44,13 @@ class LLMProvider:
         except Exception as e:
             print(f"[LLM] Error calling {target_model}: {e}")
             return f"Error: {str(e)}"
+
+    async def generate_async(self, prompt: str, system_prompt: str = "You are a helpful AI assistant.", model: str = None) -> str:
+        """Async version of generate using thread pool."""
+        import asyncio
+        from functools import partial
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, 
+            partial(self.generate, prompt, system_prompt, model)
+        )
