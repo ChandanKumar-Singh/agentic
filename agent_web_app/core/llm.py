@@ -5,7 +5,7 @@ import json
 class LLMProvider:
     """Wrapper for Ollama API with dynamic model support."""
     
-    def __init__(self, default_model="phi3:medium", host="http://192.168.1.13:11434"):
+    def __init__(self, default_model="phi3:latest", host="http://192.168.1.13:11434"):
         self.default_model = default_model
         self.host = os.getenv("OLLAMA_HOST", host)
         self.base_url = f"{self.host}/api/chat"

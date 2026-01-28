@@ -11,12 +11,21 @@ class Planner:
         prompt = f"""
         Goal: {goal}
         
-        Break this down into simple, sequential steps.
+        Available Tools:
+        1. web_search(query): Search internet for text.
+        2. image_search(query): Search internet for images.
+        3. wikipedia(query): Search Wikipedia.
+        4. calculator(expression): Math calculations.
+        
+        Break this down into simple, sequential steps that use these tools.
+        Each step should ideally correspond to one tool call.
+        Do NOT include manual steps like 'Open browser', 'Click link', 'Type in search bar'.
+        
         Return ONLY a JSON list of strings.
-        Example: ["Search for X", "Summarize findings", "Write to file"]
+        Example: ["Search Wikipedia for Taj Mahal", "Search images for Taj Mahal"]
         """
         
-        response = self.llm.generate(prompt, model="phi3:medium")
+        response = self.llm.generate(prompt, model="phi3:latest")
         try:
             # Phi-3 might add text, so we hunt for the JSON list
             match = re.search(r'\[.*\]', response, re.DOTALL)

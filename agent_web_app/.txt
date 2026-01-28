@@ -1,1 +1,14 @@
-export OLLAMA_HOST="http://192.168.1.13:11434" && PYTHONPATH=.. ./venv/bin/uvicorn agent_web_app.main:app --port 8001
+# 1. Activate Virtual Environment & Install Dependencies
+# Run this from: /Users/electrovese/Documents/chandan/R&D/ai/agentic1/agent_web_app
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Run the Application
+# We must set PYTHONPATH=.. so python can resolve 'agent_web_app' imports.
+# We must set OLLAMA_HOST to point to your local LLM server.
+export OLLAMA_HOST="http://192.168.1.13:11434"
+export PYTHONPATH=.. 
+
+# Run uvicorn loading the app object from agent_web_app.main module
+# Note: We run this from the agent_web_app directory, but PYTHONPATH allows .. resolution
+python3 -m uvicorn agent_web_app.main:app --port 8001 --reload

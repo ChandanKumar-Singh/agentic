@@ -11,11 +11,37 @@ from typing import List, Dict, Optional, Any
 from agent_web_app.core.llm import LLMProvider
 from agent_web_app.core.agent import Agent
 
-# In-memory session storage
+# Persistent session storage
+HISTORY_DIR = os.path.join(os.path.dirname(__file__), "history")
+os.makedirs(HISTORY_DIR, exist_ok=True)
+
 # Structure: { "session_id": { "name": "...", "messages": [...] } }
 SESSIONS: Dict[str, Any] = {}
 
+def save_session(session_id: str, data: dict):
+    filepath = os.path.join(HISTORY_DIR, f"{session_id}.json")
+    with open(filepath, "w") as f:
+        json.dump(data, f, indent=2)
+
+def load_sessions():
+    global SESSIONS
+    print("[Server] Loading sessions from history...")
+    for filename in os.listdir(HISTORY_DIR):
+        if filename.endswith(".json"):
+            session_id = filename[:-5]
+            filepath = os.path.join(HISTORY_DIR, filename)
+            try:
+                with open(filepath, "r") as f:
+                    SESSIONS[session_id] = json.load(f)
+            except Exception as e:
+                print(f"[Server] Failed to load session {session_id}: {e}")
+    print(f"[Server] Loaded {len(SESSIONS)} sessions.")
+
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    load_sessions()
 
 # Mount static files
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -42,6 +68,7 @@ async def create_session(session: SessionCreate):
         "name": session.name,
         "messages": []
     }
+    save_session(session_id, SESSIONS[session_id])
     return {"id": session_id, "name": session.name}
 
 @app.get("/api/sessions")
@@ -70,17 +97,18 @@ async def chat_endpoint(request: ChatRequest):
     # Store User Message
     if session_id and session_id in SESSIONS:
         SESSIONS[session_id]["messages"].append({"role": "user", "content": query})
+        save_session(session_id, SESSIONS[session_id])
 
     final_response_text = ""
     steps = []
 
     if request.search_mode:
         print("[Server] Search Mode ON. Initializing Agent...")
-        # 1. Initialize Agent with Phi3 Medium
+        # 1. Initialize Agent with Phi3 Latest
         agent = Agent(llm)
         
         # 2. Run Agent Loop
-        # Agent uses Phi3 Medium to plan and Mistral to search/summarize
+        # Agent uses Phi3 Latest to plan and Mistral to search/summarize
         raw_result = agent.run(query)
         
         # 3. Refine with Llama3.1
@@ -110,6 +138,7 @@ async def chat_endpoint(request: ChatRequest):
         SESSIONS[session_id]["messages"].append({"role": "ai", "content": final_response_text})
         if steps:
              SESSIONS[session_id]["messages"].append({"role": "system", "content": f"Steps: {json.dumps(steps)}"})
+        save_session(session_id, SESSIONS[session_id])
 
     return {"response": final_response_text, "steps": steps}
 
