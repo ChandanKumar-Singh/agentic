@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Agentic AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+      :root {
+        --primary: #2563eb;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+      }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        height: 100vh;
+        color: #1e293b;
+      }
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        height: 90vh; /* Fixed height for split view */
+        display: flex;
+        flex-direction: row; /* Horizontal layout */
+        background: var(--surface);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      /* Sidebar Styles */
+      .sidebar {
+        width: 260px;
+        background: #f1f5f9;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+      }
+      .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .sidebar-header h2 {
+        margin: 0;
+        font-size: 1rem;
+        color: #334155;
+      }
+      .new-chat-btn {
+        width: 100%;
+        padding: 10px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-weight: 500;
+      }
+      .session-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .session-item {
+        padding: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #475569;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .session-item:hover {
+        background: #e2e8f0;
+      }
+      .session-item.active {
+        background: #dbeafe;
+        color: #2563eb;
+        font-weight: 500;
+      }
+
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        padding: 20px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #0f172a;
+      }
+      .badge {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .chat-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .message {
+        padding: 15px;
+        border-radius: 12px;
+        max-width: 85%;
+        line-height: 1.6;
+        position: relative;
+      }
+      .message.user {
+        align-self: flex-end;
+        background: var(--primary);
+        color: white;
+        border-bottom-right-radius: 2px;
+      }
+      .message.ai {
+        align-self: flex-start;
+        background: #f1f5f9;
+        color: #334155;
+        border-bottom-left-radius: 2px;
+      }
+
+      .steps {
+        font-size: 0.85rem;
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: none;
+      }
+      .steps.visible {
+        display: block;
+      }
+
+      .input-area {
+        padding: 20px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        background: var(--surface);
+      }
+      .input-wrapper {
+        flex: 1;
+        position: relative;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 12px 15px;
+        padding-right: 40px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+      }
+      input[type="text"]:focus {
+        border-color: var(--primary);
+      }
+
+      button {
+        padding: 10px 20px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+      button:disabled {
+        background: #cbd5e1;
+        cursor: not-allowed;
+      }
+
+      /* Toggle Switch */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        margin-right: 10px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: 0.4s;
+        border-radius: 24px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: var(--primary);
+      }
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+
+      /* Markdown */
+      .message p {
+        margin: 0 0 10px 0;
+      }
+      .message p:last-child {
+        margin: 0;
+      }
+      .message pre {
+        background: #1e293b;
+        color: #f8fafc;
+        padding: 10px;
+        border-radius: 6px;
+        overflow-x: auto;
+      }
+
+      .loading {
+        display: none;
+        font-size: 0.9rem;
+        color: #64748b;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <h2>Chats</h2>
+        </div>
+        <button class="new-chat-btn" onclick="promptNewChat()">
+          <span>+</span> New Chat
+        </button>
+        <div class="session-list" id="sessionList">
+          <!-- Sessions will be injected here -->
+        </div>
+      </div>
+
+      <!-- Main Chat Area -->
+      <div class="main-content">
+        <div class="header">
+          <h1 id="chatTitle">Agentic Web Researcher</h1>
+          <div>
+            <span class="badge">Meta-Agent</span>
+          </div>
+        </div>
+
+        <div class="chat-area" id="chat">
+          <div class="message ai">
+            Hello! Create a new chat or select an existing one to start.
+            <br /><br />
+            Toggle <strong>Search Mode</strong> for complex research.
+          </div>
+        </div>
+
+        <div class="input-area">
+          <label class="switch" title="Toggle Search Mode">
+            <input type="checkbox" id="searchMode" />
+            <span class="slider"></span>
+          </label>
+          <span style="font-size: 0.85rem; color: #64748b; margin-right: 10px"
+            >Search Mode</span
+          >
+
+          <div class="input-wrapper">
+            <input
+              type="text"
+              id="input"
+              placeholder="Ask a complex question..."
+              onkeypress="handleKey(event)"
+              disabled
+            />
+          </div>
+          <button id="sendBtn" onclick="send()" disabled>Send</button>
+        </div>
+        <div style="text-align: center; padding-bottom: 10px">
+          <span class="loading" id="loading"
+            >Thinking & Researching... this may take a moment.</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const chat = document.getElementById("chat");
+      const input = document.getElementById("input");
+      const sendBtn = document.getElementById("sendBtn");
+      const loading = document.getElementById("loading");
+      const searchMode = document.getElementById("searchMode");
+      const sessionList = document.getElementById("sessionList");
+      const chatTitle = document.getElementById("chatTitle");
+
+      let currentSessionId = null;
+
+      // Init
+      window.onload = loadSessions;
+
+      async function loadSessions() {
+        try {
+          const res = await fetch("/api/sessions");
+          const sessions = await res.json();
+          renderSessionList(sessions);
+        } catch (e) {
+          console.error("Failed to load sessions", e);
+        }
+      }
+
+      function renderSessionList(sessions) {
+        sessionList.innerHTML = "";
+        sessions.forEach((sess) => {
+          const div = document.createElement("div");
+          div.className = `session-item ${sess.id === currentSessionId ? "active" : ""}`;
+          div.textContent = sess.name;
+          div.onclick = () => loadChatSession(sess.id, sess.name);
+          sessionList.appendChild(div);
+        });
+      }
+
+      async function promptNewChat() {
+        const name = prompt("Enter chat name:");
+        if (!name) return;
+
+        try {
+          const res = await fetch("/api/sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+          });
+          const data = await res.json();
+
+          // Reload list and switch to new
+          await loadSessions();
+          loadChatSession(data.id, data.name);
+        } catch (e) {
+          alert("Failed to create session");
+        }
+      }
+
+      async function loadChatSession(sessionId, name) {
+        currentSessionId = sessionId;
+        chatTitle.textContent = name;
+
+        // Enable inputs
+        input.disabled = false;
+        sendBtn.disabled = false;
+
+        // Visual update
+        const allItems = document.querySelectorAll(".session-item");
+        allItems.forEach((el) => el.classList.remove("active"));
+        // This is a simple way; in a real app better state management is needed
+        // Re-fetching sessions to render active state correctly is easier:
+        loadSessions();
+
+        try {
+          const res = await fetch(`/api/sessions/${sessionId}`);
+          const data = await res.json();
+
+          chat.innerHTML = "";
+
+          // Default Welcome if empty
+          if (!data.messages || data.messages.length === 0) {
+            addMessage("ai", `Welcome to **${name}**. How can I help?`);
+          } else {
+            data.messages.forEach((msg) => {
+              if (msg.role === "system") {
+                // Handle system messages (steps) specially if needed, currently ignored or hidden
+                // Or we can try to parse and show
+              } else {
+                addMessage(msg.role, msg.content);
+              }
+            });
+          }
+        } catch (e) {
+          console.error("Error loading chat", e);
+        }
+      }
+
+      function handleKey(e) {
+        if (e.key === "Enter") send();
+      }
+
+      async function send() {
+        const text = input.value.trim();
+        if (!text) return;
+        if (!currentSessionId) {
+          alert("Please create or select a chat first");
+          return;
+        }
+
+        addMessage("user", text);
+        input.value = "";
+        setLoading(true);
+
+        try {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: text,
+              search_mode: searchMode.checked,
+              session_id: currentSessionId,
+            }),
+          });
+
+          const data = await res.json();
+
+          // Show steps if available
+          if (data.steps && data.steps.length > 0) {
+            const stepsHtml = data.steps.join("<br>--<br>");
+            const stepsDiv = document.createElement("div");
+            stepsDiv.className = "steps visible";
+            stepsDiv.innerHTML = `<strong>Agent Steps:</strong><br>${stepsHtml}`;
+            chat.appendChild(stepsDiv);
+          }
+
+          addMessage("ai", data.response);
+        } catch (e) {
+          addMessage("ai", "Error: " + e.message);
+        } finally {
+          setLoading(false);
+          input.focus();
+        }
+      }
+
+      function addMessage(role, text) {
+        const div = document.createElement("div");
+        div.className = `message ${role}`;
+        div.innerHTML = marked.parse(text);
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function setLoading(isLoading) {
+        loading.style.display = isLoading ? "block" : "none";
+        input.disabled = isLoading;
+        sendBtn.disabled = isLoading;
+      }
+    </script>
+  </body>
+</html>

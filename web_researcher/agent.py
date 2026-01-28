@@ -11,6 +11,7 @@ def search_web(query, max_results=3):
     try:
         with DDGS() as ddgs:
             for r in ddgs.text(query, max_results=max_results):
+                print(r)
                 results.append(r)
     except Exception as e:
         print(f"Error during search: {e}")
@@ -43,7 +44,7 @@ def fetch_page_content(url, timeout=10):
         print(f"Failed to fetch {url}: {e}")
         return None
 
-def summarize_results(query, results, model_name="deepseek-r1:1.5b", host="http://192.168.1.13:11434"):
+def summarize_results(query, results, model_name="mistral:latest", host="http://192.168.1.13:11434"):
     """Summarize search results using Ollama."""
     print(f"Summarizing with model: {model_name}...")
     
@@ -94,7 +95,7 @@ def summarize_results(query, results, model_name="deepseek-r1:1.5b", host="http:
 def main():
     parser = argparse.ArgumentParser(description="Web Search & Summarization Agent")
     parser.add_argument("query", nargs="*", help="The search query")
-    parser.add_argument("--model", default="deepseek-r1:1.5b", help="Ollama model to use")
+    parser.add_argument("--model", default="mistral:latest", help="Ollama model to use")
     parser.add_argument("--host", default="http://192.168.1.13:11434", help="Ollama host URL")
     
     args = parser.parse_args()

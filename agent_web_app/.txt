@@ -1,0 +1,1 @@
+export OLLAMA_HOST="http://192.168.1.13:11434" && PYTHONPATH=.. ./venv/bin/uvicorn agent_web_app.main:app --port 8001

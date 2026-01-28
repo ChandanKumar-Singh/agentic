@@ -16,12 +16,12 @@ def ask_model():
 
     try:
         response = client.chat(
-            model="deepseek-r1:1.5b",
+            model="mistral:latest",
             messages=[{"role": "user", "content": prompt}]
         )
 
         return jsonify({
-            "model": "deepseek-r1:1.5b",
+            "model": "mistral:latest",
             "prompt": prompt,
             "response": response["message"]["content"]
         })
@@ -39,7 +39,7 @@ curl "http://YOUR_PC_IP:5000/ask?p=How does photosynthesis work?"
 
 Example JSON response:
 {
-  "model": "deepseek-r1:1.5b",
+  "model": "mistral:latest",
   "prompt": "How does photosynthesis work?",
   "response": "Photosynthesis is the process where plants convert sunlight..."
 } """
