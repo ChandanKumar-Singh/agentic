@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Agent Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        height: 100vh;
+      }
+      .chat-container {
+        width: 100%;
+        max-width: 800px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        padding: 20px;
+        background: #007bff;
+        color: white;
+        text-align: center;
+      }
+      .chat-history {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      .message {
+        padding: 15px;
+        border-radius: 10px;
+        max-width: 80%;
+        line-height: 1.5;
+      }
+      .message.user {
+        align-self: flex-end;
+        background-color: #007bff;
+        color: white;
+      }
+      .message.agent {
+        align-self: flex-start;
+        background-color: #e9ecef;
+        color: #333;
+      }
+      .message.system {
+        align-self: center;
+        background-color: transparent;
+        color: #888;
+        font-style: italic;
+        font-size: 0.9em;
+      }
+
+      .input-area {
+        padding: 20px;
+        background: #fff;
+        border-top: 1px solid #ddd;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      input[type="text"] {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        outline: none;
+      }
+      button {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+      }
+      button:disabled {
+        background: #ccc;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9em;
+        color: #555;
+      }
+
+      /* Markdown Styles */
+      .message.agent pre {
+        background: #2d2d2d;
+        color: #f8f8f2;
+        padding: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+      }
+      .message.agent code {
+        font-family: Consolas, Monaco, "Andale Mono", monospace;
+      }
+      .message.agent p {
+        margin: 0 0 10px 0;
+      }
+      .message.agent p:last-child {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <div class="header">
+        <h2>Agentic AI Chat</h2>
+      </div>
+      <div class="chat-history" id="chatHistory">
+        <div class="message agent">
+          Hello! I'm your AI Accessant. How can I help you today?
+        </div>
+      </div>
+      <div class="input-area">
+        <div class="controls">
+          <input type="checkbox" id="searchMode" />
+          <label for="searchMode">Search Mode</label>
+        </div>
+        <input
+          type="text"
+          id="userInput"
+          placeholder="Type your message..."
+          onkeypress="handleKeyPress(event)"
+        />
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+
+    <script>
+      const chatHistory = document.getElementById("chatHistory");
+      const userInput = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
+      const searchModeCheckbox = document.getElementById("searchMode");
+
+      let currentEventSource = null;
+
+      function handleKeyPress(e) {
+        if (e.key === "Enter") sendMessage();
+      }
+
+      async function sendMessage() {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        // UI Updates
+        appendMessage("user", text);
+        userInput.value = "";
+        inputState(false);
+
+        // Prepare prompt
+        let finalPrompt = text;
+        if (searchModeCheckbox.checked) {
+          finalPrompt =
+            "Using one of your search tools, answer this question: " + text;
+          appendMessage("system", "🔍 Search Mode Enabled");
+        }
+
+        try {
+          // 1. Start the run
+          const runResponse = await fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ goal: finalPrompt }),
+          });
+
+          if (!runResponse.ok) throw new Error("Failed to start run");
+          const runData = await runResponse.json();
+          const runId = runData.run_id;
+
+          // 2. Connect to stream
+          connectToStream(runId);
+        } catch (error) {
+          console.error(error);
+          appendMessage("system", "Error: " + error.message);
+          inputState(true);
+        }
+      }
+
+      function connectToStream(runId) {
+        if (currentEventSource) currentEventSource.close();
+
+        // Create a placeholder message for the agent's response
+        const responseDiv = document.createElement("div");
+        responseDiv.className = "message agent";
+        chatHistory.appendChild(responseDiv);
+        scrollToBottom();
+
+        // Buffer for markdown rendering
+        let fullContent = "";
+
+        const eventSource = new EventSource(`/api/run/${runId}/stream`);
+        currentEventSource = eventSource;
+
+        eventSource.onmessage = function (event) {
+          // Standard message handling if server sends plain text (usually doesn't)
+        };
+
+        eventSource.addEventListener("thought", function (e) {
+          // Optional: Show thoughts? For now, keep it clean.
+          // console.log("Thought:", e.data);
+        });
+
+        eventSource.addEventListener("result", function (e) {
+          const data = JSON.parse(e.data);
+          if (data.answer) {
+            fullContent = data.answer;
+            responseDiv.innerHTML = marked.parse(fullContent);
+            scrollToBottom();
+          }
+        });
+
+        // If the server streams partial tokens (not currently supported by existing backend logic which streams steps),
+        // we might not see real-time *text* streaming, but we see *step* streaming.
+        // The current server.py sends "result" at the end.
+        // Ideally, we'd want token streaming, but the LLMProvider is sync.
+        // So we will just show "Processing..." until the result comes.
+
+        // Let's add a "Processing..." indicator initially
+        responseDiv.innerHTML = "<em>Thinking...</em>";
+
+        eventSource.addEventListener("step", function (e) {
+          responseDiv.innerHTML = "<em>Running step...</em>";
+        });
+
+        eventSource.addEventListener("action", function (e) {
+          const data = JSON.parse(e.data);
+          responseDiv.innerHTML = `<em>Action: ${data.tool}...</em>`;
+        });
+
+        eventSource.addEventListener("DONE", function (e) {
+          eventSource.close();
+          inputState(true);
+          currentEventSource = null;
+        });
+
+        eventSource.addEventListener("error", function (e) {
+          // eventSource.close();
+          // inputState(true);
+        });
+      }
+
+      function appendMessage(role, text) {
+        const div = document.createElement("div");
+        div.className = `message ${role}`;
+        div.innerHTML = role === "user" ? text : marked.parse(text); // Basic markdown for user too?
+        if (role === "system") div.innerHTML = text; // No markdown for system
+        chatHistory.appendChild(div);
+        scrollToBottom();
+      }
+
+      function scrollToBottom() {
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+      }
+
+      function inputState(enabled) {
+        userInput.disabled = !enabled;
+        sendBtn.disabled = !enabled;
+        if (enabled) userInput.focus();
+      }
+    </script>
+  </body>
+</html>

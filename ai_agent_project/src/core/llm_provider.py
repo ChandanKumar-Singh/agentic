@@ -16,7 +16,8 @@ class LLMProvider:
         self.provider = "none"
         
         # Check explicit overrides or keys
-        if "llama" in settings.MODEL_NAME.lower() or "qwen" in settings.MODEL_NAME.lower():
+        # Check explicit overrides or keys
+        if any(keyword in settings.MODEL_NAME.lower() for keyword in ["llama", "qwen", "deepseek"]):
             print(f"Ollama model detected: {settings.MODEL_NAME}")
             self.mode = "api"
             self.provider = "ollama"

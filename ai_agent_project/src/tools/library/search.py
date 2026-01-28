@@ -1,7 +1,11 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
 from ai_agent_project.src.tools.base import Tool
 from ai_agent_project.src.core.types import ToolOutput
+from ddgs import DDGS
+import requests
+from bs4 import BeautifulSoup
+import re
 
 class WebSearchInput(BaseModel):
     query: str = Field(..., description="The search query")
@@ -9,34 +13,70 @@ class WebSearchInput(BaseModel):
 
 class WebSearchTool(Tool):
     name = "web_search"
-    description = "Search the internet for up-to-date information. Use this when you need current facts."
+    description = "Search the internet for up-to-date information. Use this when you need current facts. Returns titles, links, snippets, and page content."
     input_schema = WebSearchInput
 
+    def _fetch_page_content(self, url: str, timeout: int = 10) -> Optional[str]:
+        """Fetch and clean text content from a URL."""
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            response = requests.get(url, headers=headers, timeout=timeout)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Remove clutter
+            for element in soup(["script", "style", "nav", "footer", "header", "aside", "form"]):
+                element.decompose()
+                
+            text = soup.get_text(separator=' ', strip=True)
+            text = re.sub(r'\s+', ' ', text).strip()
+            
+            # Limit length
+            return text[:2500] + "..." if len(text) > 2500 else text
+        except Exception as e:
+            # print(f"Failed to fetch {url}: {e}") # Reduce noise
+            return None
+
     def execute(self, input_data: WebSearchInput) -> ToolOutput:
-        # NOTE: For this project template, we'll use a Mock implementation 
-        # to ensure it runs without an API key immediately. 
-        # In production, swap with Google/Bing/SerpAPI.
+        query = input_data.query
+        results = []
         
-        query = input_data.query.lower()
-        mock_results = []
+        try:
+            with DDGS() as ddgs:
+                # Get raw results
+                raw_results = []
+                for r in ddgs.text(query, max_results=input_data.max_results):
+                    raw_results.append(r)
+            
+            # Enrich with page content
+            enriched_results = []
+            fetched_count = 0
+            
+            for res in raw_results:
+                item = {
+                    "title": res['title'],
+                    "link": res['href'],
+                    "snippet": res['body'],
+                    "content": None
+                }
+                
+                # Fetch content for top 2 results
+                if fetched_count < 2:
+                    content = self._fetch_page_content(res['href'])
+                    if content:
+                        item["content"] = content
+                        fetched_count += 1
+                
+                enriched_results.append(item)
+                
+            if not enriched_results:
+                 return ToolOutput(success=False, result="No results found.")
 
-        if "python" in query:
-             mock_results = [
-                {"title": "Python 3.12 Release Notes", "snippet": "Python 3.12 introduces flexible f-strings and better error messages.", "link": "https://docs.python.org/3.12/"},
-                {"title": "Real Python: What's new in 3.12", "snippet": "Detailed breakdown of the new GIL features and performance boosts.", "link": "https://realpython.com/"}
-            ]
-        elif "agent" in query:
-             mock_results = [
-                {"title": "Agentic AI Overview", "snippet": "Autonomous agents are the next frontier of AI.", "link": "https://ai-news.com/agents"},
-                {"title": "Building ReAct Agents", "snippet": "How to implement reasoning loops with LLMs.", "link": "https://arxiv.org/"}
-            ]
-        else:
-             mock_results = [
-                {"title": f"Results for {input_data.query}", "snippet": "Generic placeholder search result 1.", "link": "http://example.com/1"},
-                {"title": f"More on {input_data.query}", "snippet": "Generic placeholder search result 2.", "link": "http://example.com/2"}
-            ]
+            return ToolOutput(success=True, result=enriched_results)
 
-        return ToolOutput(
-            success=True, 
-            result=mock_results[:input_data.max_results]
-        )
+        except Exception as e:
+            return ToolOutput(success=False, error=str(e))
+

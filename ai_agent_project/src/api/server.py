@@ -19,6 +19,8 @@ from ai_agent_project.src.memory.semantic import SemanticMemory
 from ai_agent_project.src.core.agent import Agent
 from ai_agent_project.src.core.types import AgentResult
 
+from ai_agent_project.src.config.settings import settings
+
 app = FastAPI(title="AI Agent API")
 
 app.add_middleware(
@@ -28,6 +30,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/ask")
+def ask_model(p: str):
+    if not p:
+        raise HTTPException(status_code=400, detail="Missing 'p' parameter")
+
+    try:
+        # Use existing LLMProvider for consistent behavior
+        llm = LLMProvider() 
+        response_content = llm.generate(p)
+
+        return {
+            "model": settings.MODEL_NAME,
+            "prompt": p,
+            "response": response_content
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # --- Event System ---
 class EventStream:
@@ -197,5 +219,11 @@ async def get_run_details(run_id: str):
     }
 
 import os
+from fastapi.responses import FileResponse
 static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+
+@app.get("/chat")
+async def chat_page():
+    return FileResponse(os.path.join(static_path, "chat.html"))
+
 app.mount("/", StaticFiles(directory=static_path, html=True), name="static")

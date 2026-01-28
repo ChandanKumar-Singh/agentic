@@ -41,9 +41,18 @@ class Agent:
             step_id = i + 1
             
              # Check if plan is complete
+            # Check if plan is complete
             if self.planner.plan.is_complete():
                 print("\n✅ Plan Complete!")
-                return AgentResult(success=True, answer="All planned tasks completed.", steps=self.working_memory.steps)
+                
+                # Use the result of the last subtask as the final answer
+                final_answer = "All planned tasks completed."
+                if self.planner.plan.subtasks:
+                    last_task = self.planner.plan.subtasks[-1]
+                    if last_task.result:
+                        final_answer = last_task.result
+                        
+                return AgentResult(success=True, answer=final_answer, steps=self.working_memory.steps)
 
             # Get next active subtask
             current_task = self.planner.get_next_step()
@@ -204,10 +213,19 @@ What is the next step?
                      # use regex to find JSON block anywhere after tool name
                      json_match = re.search(r"(\{.*?\})", rest, re.DOTALL)
                      if json_match:
+                         json_str = json_match.group(1)
                          try:
-                            action_input = json.loads(json_match.group(1))
+                            action_input = json.loads(json_str)
                          except Exception as e:
-                            print(f"⚠️ JSON parse failed in Action Input: {e}")
+                            # Try converting Python dict syntax (single quotes) to JSON (double quotes)
+                            try:
+                                # This is a simple heuristic: replace single quotes with double quotes
+                                # Ideally we'd use ast.literal_eval but we want to stay safe/simple
+                                json_str_fixed = json_str.replace("'", '"')
+                                action_input = json.loads(json_str_fixed)
+                                print(f"⚠️ Recovered from single-quote JSON: {json_str_fixed}")
+                            except:
+                                print(f"⚠️ JSON parse failed in Action Input: {e}")
                             # Try to extract from the line itself
                             for line in tool_lines[1:]:
                                 if "{" in line:
