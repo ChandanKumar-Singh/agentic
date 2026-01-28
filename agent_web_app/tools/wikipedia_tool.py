@@ -1,6 +1,7 @@
 import wikipedia
+from agent_web_app.core.tool import Tool
 
-class WikipediaTool:
+class WikipediaTool(Tool):
     name = "wikipedia"
     description = "Search Wikipedia for summaries. Use this for general knowledge queries."
 

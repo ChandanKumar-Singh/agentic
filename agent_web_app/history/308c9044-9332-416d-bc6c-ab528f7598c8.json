@@ -1,0 +1,9 @@
+{
+  "name": "Test Session",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Calculate 50 * 20"
+    }
+  ]
+}

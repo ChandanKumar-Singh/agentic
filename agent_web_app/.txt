@@ -8,7 +8,5 @@ pip install -r requirements.txt
 # We must set OLLAMA_HOST to point to your local LLM server.
 export OLLAMA_HOST="http://192.168.1.13:11434"
 export PYTHONPATH=.. 
-
-# Run uvicorn loading the app object from agent_web_app.main module
-# Note: We run this from the agent_web_app directory, but PYTHONPATH allows .. resolution
-python3 -m uvicorn agent_web_app.main:app --port 8001 --reload
+./venv/bin/python3 -m uvicorn agent_web_app.main:app --port 8001 --reload
+# Run uvicorn using the virtual environment's python directly to avoid path issues

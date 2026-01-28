@@ -1,7 +1,9 @@
 from agent_web_app.core.planner import Planner
+from agent_web_app.core.tool import ToolRegistry
 from agent_web_app.tools.search import WebSearchTool
 from agent_web_app.tools.calculator import CalculatorTool
 from agent_web_app.tools.wikipedia_tool import WikipediaTool
+from agent_web_app.tools.image_tool import ImageSearchTool
 import json
 import re
 
@@ -9,9 +11,14 @@ class Agent:
     def __init__(self, llm_provider):
         self.llm = llm_provider
         self.planner = Planner(llm_provider)
-        self.search_tool = WebSearchTool(llm_provider)
-        self.calculator_tool = CalculatorTool()
-        self.wikipedia_tool = WikipediaTool()
+        
+        # Initialize Registry
+        self.registry = ToolRegistry()
+        self.registry.register(WebSearchTool(llm_provider))
+        self.registry.register(ImageSearchTool())
+        self.registry.register(CalculatorTool())
+        self.registry.register(WikipediaTool())
+        
         self.history = []
 
     def run(self, goal: str):
@@ -23,40 +30,39 @@ class Agent:
         for i, step in enumerate(steps):
             print(f"\n--- Step {i+1}: {step} ---")
             
-            # Decide action using Phi-3
-            prompt = f"""
-            Goal: {goal}
-            Current Step: {step}
-            Context: {context}
-            
-            Available Tools:
-            - web_search(query): Search the internet for text information.
-            - image_search(query): Search for images.
-            - wikipedia(query): Search Wikipedia for summary.
-            - calculator(expression): Calculate math expression (e.g. '12 * 5').
-            - finish(answer): Return the final answer.
-            
-            What should I do?
-            Return JSON format: {{"tool": "tool_name", "args": "arguments"}}
-            """
-            
-            response = self.llm.generate(prompt, model="phi3:latest")
-            
-            # Parse action
-            action = self._parse_json(response)
-            if not action:
-                # Fallback: try to guess from text
-                lower_resp = response.lower()
-                if "image" in lower_resp and "search" in lower_resp:
-                     action = {"tool": "image_search", "args": step}
-                elif "wikipedia" in lower_resp:
-                     action = {"tool": "wikipedia", "args": step}
-                elif "calc" in lower_resp:
-                     action = {"tool": "calculator", "args": step}
-                elif "search" in lower_resp:
-                    action = {"tool": "web_search", "args": step}
-                else:
+            # Check if step is structured (from smart Planner)
+            if isinstance(step, dict) and "tool_name" in step:
+                print(f"[Agent] optimized execution: using planner's suggested tool {step.get('tool_name')}")
+                action = {
+                    "tool": step.get("tool_name"),
+                    "args": step.get("input_value") or step.get("args")
+                }
+            else:
+                # Legacy text-step logic: Ask LLM to decide
+                tools_list = self.registry.get_prompt_text()
+                prompt = f"""
+                Goal: {goal}
+                Current Step: {step}
+                Context: {context}
+                
+                {tools_list}
+                - finish(answer): Return the final answer.
+                
+                What should I do?
+                Return JSON format: {{"tool": "tool_name", "args": "arguments"}}
+                """
+                
+                response = self.llm.generate(prompt, model="phi3:latest")
+                
+                # Parse action
+                action = self._parse_json(response)
+                if not action:
+                    # Fallback strategies
+                    lower_resp = response.lower()
                     action = {"tool": "finish", "args": response}
+                    
+                    if "image" in lower_resp and "search" in lower_resp:
+                        action = {"tool": "web_search", "args": step}
 
             # Execute
             tool_name = action.get("tool")
@@ -69,16 +75,15 @@ class Agent:
                 args = ""
             
             result = None
-            if tool_name == "web_search":
-                result = self.search_tool.execute(args)
-            elif tool_name == "image_search":
-                result = self.search_tool.search_images(args)
-            elif tool_name == "wikipedia":
-                result = self.wikipedia_tool.execute(args)
-            elif tool_name == "calculator":
-                result = self.calculator_tool.execute(args)
-            elif tool_name == "finish":
+            
+            if tool_name == "finish":
                 return args
+            
+            tool = self.registry.get(tool_name)
+            if tool:
+                result = tool.execute(args)
+            else:
+                result = f"Error: Tool {tool_name} not found."
             
             if result:
                  context += f"\n[{tool_name} Result]: {result}\n"

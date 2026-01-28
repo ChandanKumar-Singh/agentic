@@ -3,8 +3,9 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from agent_web_app.core.llm import LLMProvider
+from agent_web_app.core.tool import Tool
 
-class WebSearchTool:
+class WebSearchTool(Tool):
     name = "web_search"
     description = "Search the web for real-time information. Returns a summary."
     
@@ -67,18 +68,3 @@ class WebSearchTool:
         summary = self.llm.generate(prompt, model="mistral:latest")
         return summary
 
-    def search_images(self, query: str, max_results: int = 3) -> str:
-        print(f"[Tool:WebSearch] Searching images for: {query}")
-        images = []
-        try:
-            with DDGS() as ddgs:
-                results = ddgs.images(query, max_results=max_results)
-                for r in results:
-                    images.append(f"![{r['title']}]({r['image']})")
-        except Exception as e:
-            return f"Image search failed: {e}"
-
-        if not images:
-            return "No images found."
-        
-        return "\n".join(images)

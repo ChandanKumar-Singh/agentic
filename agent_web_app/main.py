@@ -1,54 +1,28 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
 import json
-import asyncio
-import uuid
 from typing import List, Dict, Optional, Any
 
 from agent_web_app.core.llm import LLMProvider
 from agent_web_app.core.agent import Agent
+from agent_web_app.core.session_manager import SessionManager
 
-# Persistent session storage
+# Configuration
 HISTORY_DIR = os.path.join(os.path.dirname(__file__), "history")
-os.makedirs(HISTORY_DIR, exist_ok=True)
-
-# Structure: { "session_id": { "name": "...", "messages": [...] } }
-SESSIONS: Dict[str, Any] = {}
-
-def save_session(session_id: str, data: dict):
-    filepath = os.path.join(HISTORY_DIR, f"{session_id}.json")
-    with open(filepath, "w") as f:
-        json.dump(data, f, indent=2)
-
-def load_sessions():
-    global SESSIONS
-    print("[Server] Loading sessions from history...")
-    for filename in os.listdir(HISTORY_DIR):
-        if filename.endswith(".json"):
-            session_id = filename[:-5]
-            filepath = os.path.join(HISTORY_DIR, filename)
-            try:
-                with open(filepath, "r") as f:
-                    SESSIONS[session_id] = json.load(f)
-            except Exception as e:
-                print(f"[Server] Failed to load session {session_id}: {e}")
-    print(f"[Server] Loaded {len(SESSIONS)} sessions.")
-
 app = FastAPI()
-
-@app.on_event("startup")
-async def startup_event():
-    load_sessions()
 
 # Mount static files
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+# Initialize Services
+session_manager = SessionManager(HISTORY_DIR)
 llm = LLMProvider()
 
+# --- Models ---
 class ChatRequest(BaseModel):
     message: str
     search_mode: bool = False
@@ -57,32 +31,27 @@ class ChatRequest(BaseModel):
 class SessionCreate(BaseModel):
     name: str
 
-class SessionList(BaseModel):
-    id: str
-    name: str
+# --- Endpoints ---
+
+@app.on_event("startup")
+async def startup_event():
+    # SessionManager loads on init, so just a log here
+    print(f"[Server] Startup. History Dir: {HISTORY_DIR}")
 
 @app.post("/api/sessions")
 async def create_session(session: SessionCreate):
-    session_id = str(uuid.uuid4())
-    SESSIONS[session_id] = {
-        "name": session.name,
-        "messages": []
-    }
-    save_session(session_id, SESSIONS[session_id])
-    return {"id": session_id, "name": session.name}
+    return session_manager.create_session(session.name)
 
 @app.get("/api/sessions")
 async def list_sessions():
-    return [
-        {"id": k, "name": v["name"]} 
-        for k, v in SESSIONS.items()
-    ]
+    return session_manager.list_sessions()
 
 @app.get("/api/sessions/{session_id}")
 async def get_session(session_id: str):
-    if session_id not in SESSIONS:
+    sess = session_manager.get_session(session_id)
+    if not sess:
         return {"error": "Session not found"}
-    return SESSIONS[session_id]
+    return sess
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
@@ -95,23 +64,21 @@ async def chat_endpoint(request: ChatRequest):
     session_id = request.session_id
     
     # Store User Message
-    if session_id and session_id in SESSIONS:
-        SESSIONS[session_id]["messages"].append({"role": "user", "content": query})
-        save_session(session_id, SESSIONS[session_id])
+    if session_id:
+        session_manager.add_message(session_id, "user", query)
 
     final_response_text = ""
     steps = []
 
     if request.search_mode:
         print("[Server] Search Mode ON. Initializing Agent...")
-        # 1. Initialize Agent with Phi3 Latest
+        # 1. Initialize Agent (New Tool Registry is auto-init inside)
         agent = Agent(llm)
         
         # 2. Run Agent Loop
-        # Agent uses Phi3 Latest to plan and Mistral to search/summarize
         raw_result = agent.run(query)
         
-        # 3. Refine with Llama3.1
+        # 3. Refine with Llama3.1 (Synthesis Step)
         print("[Server] Refining answer with llama3.1:8b...")
         refine_prompt = f"""
         User Question: {query}
@@ -128,20 +95,20 @@ async def chat_endpoint(request: ChatRequest):
         
     else:
         print("[Server] Normal Chat Mode. Using phi3:latest...")
-        # Direct chat with Phi3 Latest
         response = llm.generate(query, model="phi3:latest")
         final_response_text = response
         steps = []
 
     # Store AI Response
-    if session_id and session_id in SESSIONS:
-        SESSIONS[session_id]["messages"].append({"role": "ai", "content": final_response_text})
+    if session_id:
+        session_manager.add_message(session_id, "ai", final_response_text)
         if steps:
-             SESSIONS[session_id]["messages"].append({"role": "system", "content": f"Steps: {json.dumps(steps)}"})
-        save_session(session_id, SESSIONS[session_id])
+             session_manager.add_message(session_id, "system", f"Steps: {json.dumps(steps)}")
 
     return {"response": final_response_text, "steps": steps}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    # Use environment variables for host/port if available
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)

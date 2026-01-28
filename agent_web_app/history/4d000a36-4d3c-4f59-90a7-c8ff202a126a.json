@@ -1,0 +1,17 @@
+{
+  "name": "Test Session",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Calculate 50 * 20"
+    },
+    {
+      "role": "ai",
+      "content": "It appears that there's an error in the code snippet provided. The issue seems to be related to a variable named \"ast\" being undefined.\n\nHowever, since we're dealing with a simple arithmetic operation (50 * 20), let's ignore the error and provide the correct result:\n\nThe result of multiplying 50 by 20 is: **1000**"
+    },
+    {
+      "role": "system",
+      "content": "Steps: [\"Action: calculator(50*20)\\nResult: Error calculating: name 'ast' is not defined\"]"
+    }
+  ]
+}
